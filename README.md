@@ -4,9 +4,11 @@ Static public website for **Unoyama Holdings**, served at
 <https://www.unoyama.com> (apex `unoyama.com` should redirect to, or serve the
 same content as, the `www` host).
 
+Last updated: August 21, 2026.
+
 **Everything in this repository is public and published under the Unoyama
 Holdings name.** Do not add anything here that is not intended to be read by
-anyone on the internet — no internal notes, no credentials, no vendor or
+anyone on the internet. No internal notes, no credentials, no vendor or
 counterparty data, no unredacted financials.
 
 ## Why this site exists
@@ -15,9 +17,9 @@ Unoyama Holdings is a private holding company. It holds no customer
 information, publishes no public applications, and offers no products or
 services to end users. Any software it builds is for its own internal use.
 
-The site exists to provide a public presence and the standard set of public
+The site gives the company a public presence and the standard set of public
 legal URLs that third-party platforms ask for before issuing production API
-credentials. The pages are deliberately generic: they describe a holding
+credentials. The pages are deliberately generic. They describe a holding
 company with a static website and internal-only software, and they do **not**
 claim customers, end users, or a public product.
 
@@ -33,11 +35,11 @@ claim customers, end users, or a public product.
 
 Host domain: `unoyama.com`.
 
-Note: internal links use extensionless paths (`/legal/privacy`). GitHub Pages
-serves `privacy.html` for that path, so this works as published — but it will
-404 if you open the files directly from disk with `file://`, and it depends on
-that Pages behavior. If you would rather not rely on it, change the links to
-include `.html` and supply the `.html` URLs to match.
+Note on links. Internal links use extensionless paths (`/legal/privacy`).
+GitHub Pages serves `privacy.html` for that path, so this works as published.
+It will 404 if you open the files directly from disk with `file://`, and it
+depends on that Pages behavior. If you would rather not rely on it, change the
+links to include `.html` and supply the `.html` URLs to match.
 
 ## Setup notes
 
@@ -46,26 +48,27 @@ include `.html` and supply the `.html` URLs to match.
 - Light and dark rendering via `prefers-color-scheme`.
 - A custom domain on GitHub Pages needs a `CNAME` file containing
   `www.unoyama.com` plus the matching DNS records, and **"Enforce HTTPS"**
-  enabled in the repository's Pages settings. Both are required — HTTPS URLs
-  are mandatory for the Intuit portal fields above. *(Neither is included in
-  this directory — add them when the repo is created.)*
+  enabled in the repository's Pages settings. Both are required, because HTTPS
+  URLs are mandatory for the Intuit portal fields above. *(Neither is included
+  in this directory. Add them when the repo is created.)*
 
-## Before publishing — required
+## Before publishing, required
 
 **The legal text is a draft and must be reviewed by a human, and ideally by
 counsel, before this goes live.**
 
-Resolve every placeholder first. Placeholders used throughout:
+Values set on 2026-08-21 by the owner:
 
-- `[LEGAL ENTITY SUFFIX — confirm]` — the full legal name (LLC, Inc., …) is not
-  documented. Appears on every page.
-- `[CONTACT EMAIL — confirm]` — `legal/privacy.html`, `legal/eula.html`,
-  `legal/connect.html`, `legal/disconnect.html`.
-- `[EFFECTIVE DATE — confirm]` — `legal/privacy.html`, `legal/eula.html`.
-- `[GOVERNING LAW — confirm]` — `legal/eula.html`. No jurisdiction is assumed.
-- `[YEAR — confirm]` — copyright year in every footer.
+- The legal entity is Unoyama Holdings, LLC, on every page.
+- The contact address is legal@unoyama.com, a Google Workspace group, on the
+  four legal pages.
+- The governing law is the State of Texas, in `legal/eula.html`.
 
-Find them all:
+Dates are already filled in. Every page carries a visible "Last updated:
+August 21, 2026" stamp, the two legal agreements carry an effective date of
+August 21, 2026, and every footer reads 2026.
+
+Find the remaining placeholders:
 
 ```
 grep -rn "confirm" .
