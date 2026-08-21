@@ -1,0 +1,20 @@
+# >>> octo gitleaks >>>
+# Managed by 'octo callback setup gitleaks' — shared by the local lefthook
+# hook AND the CI scan so both agree on what counts as a secret. Repo-owned
+# rules and allowlists go BELOW the end marker; pin one-off false positives
+# by fingerprint in .gitleaksignore rather than widening this config.
+# Pattern: octo:guide:document:secret-handling-pattern
+[extend]
+useDefault = true
+# <<< octo gitleaks <<<
+
+# Repo-owned rules and allowlists below this line.
+
+# ── repo-owned rules ──
+# The unoyama estate's 1Password account User ID, pinned in .octo/envrc.yml.
+# An account identifier, not a credential — knowing it grants nothing without
+# a signed-in op session. Same allowlist as unoyama::infrastructure
+# (infrastructure:devops:atom:gitleaks-op-account-id-allowlisted).
+[[allowlists]]
+description = "1Password account User ID — an identifier, not a credential"
+regexes = ['''BG6O4LMREBGLBHADETOZGPFIWU''']

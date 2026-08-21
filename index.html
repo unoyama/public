@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unoyama Holdings</title>
+<meta name="description" content="Unoyama Holdings — a private holding company.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #5c5c5c;
+    --rule: #e2e2e2;
+    --link: #1a4f8a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131313;
+      --fg: #e8e8e8;
+      --muted: #a0a0a0;
+      --rule: #2e2e2e;
+      --link: #8ab4e8;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: 5rem 1.5rem 3rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.75rem;
+  }
+  p { margin: 0 0 1.25rem; }
+  .lede { color: var(--muted); }
+  nav { margin: 2rem 0 0; }
+  nav a {
+    display: inline-block;
+    margin: 0 1.25rem 0.5rem 0;
+  }
+  a { color: var(--link); }
+  a:hover { text-decoration: none; }
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+  @media (max-width: 30rem) {
+    main { padding-top: 3rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Unoyama Holdings</h1>
+  <p class="lede">
+    Unoyama Holdings is a private holding company. It publishes no public
+    applications and offers no products or services to the public.
+  </p>
+
+  <nav>
+    <a href="/legal/privacy">Privacy Policy</a>
+    <a href="/legal/eula">End-User License Agreement</a>
+    <a href="/legal/connect">Connecting</a>
+    <a href="/legal/disconnect">Disconnecting</a>
+  </nav>
+
+  <footer>
+    &copy; [YEAR — confirm] Unoyama Holdings [LEGAL ENTITY SUFFIX — confirm]. All rights reserved.
+  </footer>
+</main>
+</body>
+</html>
