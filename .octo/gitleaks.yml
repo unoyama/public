@@ -1,0 +1,25 @@
+# .octo/gitleaks.yml — octo's own gitleaks config. Not read by gitleaks:
+# .gitleaks.toml (rules) and .gitleaksignore (suppressed findings) are its
+# inputs. This file holds what OCTO needs.
+#
+# history: how much of the repo the CI workflow scans.
+#   full         scan all history (the default; correct for a normal repo)
+#   incremental  scan only the commits an event introduces — for repos whose
+#                history is too large to re-walk on every PR. Sound only when
+#                pre-existing findings are already baselined in .gitleaksignore.
+# Change it with: octo callback install gitleaks --history <mode>
+# history: full
+#
+# exemptions: a TEST MANIFEST, not a second ignore-list. octo's selftest
+# ('octo callback invoke gitleaks selftest') plants a secret at each entry and
+# asserts it STAYS exempt — so an allowlist that silently broke is caught the
+# same way a fail-open config is. .gitleaksignore cannot do this: it carries no
+# rationale and cannot notice a deleted allowlist rule.
+#
+# This file exists in every repo for a uniform structure; most keep the list
+# empty. Declare an entry only for a real, deliberate allowlist in .gitleaks.toml.
+exemptions: []
+  # - path: _archive/          # a path-allowlist in .gitleaks.toml
+  #   why: archived data dumps, not live secrets
+  # - value: "AKIA...."        # a value-allowlist (an identifier, not a secret)
+  #   why: a 1Password account id that trips the generic rule

@@ -1,9 +1,9 @@
 # >>> octo gitleaks >>>
-# Managed by 'octo callback setup gitleaks' — shared by the local lefthook
+# Managed by 'octo callback install gitleaks' — shared by the local lefthook
 # hook AND the CI scan so both agree on what counts as a secret. Repo-owned
 # rules and allowlists go BELOW the end marker; pin one-off false positives
 # by fingerprint in .gitleaksignore rather than widening this config.
-# Pattern: octo:guide:document:secret-handling-pattern
+# Pattern: octo:guide:conventions:document:secret-handling-pattern
 [extend]
 useDefault = true
 # <<< octo gitleaks <<<
