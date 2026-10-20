@@ -1,0 +1,23 @@
+commit-msg:
+  commands:
+    # octo-managed — reasserted by `octo callback install lefthook`; change it in octo, not here
+    conventional-commit:
+      run: octo callback invoke lefthook commit-msg {1}
+pre-push:
+  commands:
+    # octo-managed — reasserted by `octo callback install lefthook`; change it in octo, not here
+    # {1} (the remote) also tells octo that use_stdin is set: keep both or neither.
+    validate-commits:
+      run: octo callback invoke lefthook pre-push {1}
+      use_stdin: true
+    # octo-managed — reasserted by `octo callback install gitleaks`; change it in octo, not here.
+    # Config selftest: proves .gitleaks.toml has not silently broken (fail-open
+    # guard) using octo's built-in fixtures. Runs where config edits happen —
+    # before the broken config can reach the remote. Skips if gitleaks absent.
+    gitleaks-selftest:
+      run: octo callback invoke gitleaks selftest
+pre-commit:
+  commands:
+    # octo-managed — reasserted by `octo callback install gitleaks`; change it in octo, not here
+    gitleaks:
+      run: octo callback invoke gitleaks staged

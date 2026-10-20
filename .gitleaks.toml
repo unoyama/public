@@ -1,4 +1,5 @@
 # >>> octo gitleaks >>>
+# octo revision 1 — an older octo never overwrites a higher revision.
 # Managed by 'octo callback install gitleaks' — shared by the local lefthook
 # hook AND the CI scan so both agree on what counts as a secret. Repo-owned
 # rules and allowlists go BELOW the end marker; pin one-off false positives
