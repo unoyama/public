@@ -16,8 +16,51 @@ pre-push:
     # before the broken config can reach the remote. Skips if gitleaks absent.
     gitleaks-selftest:
       run: octo callback invoke gitleaks selftest
+    # octo-managed — reasserted by `octo callback install github-actions`; change it in octo, not here.
+    # FULL audit, whole repo, deliberately NOT globbed and with NO opt-out:
+    #  - sweeps every tracked workflow AND composite action, so a pre-existing
+    #    unpinned ref cannot hide behind "not staged";
+    #  - checks every pinned action against the GitHub Advisory Database.
+    #    SHA pinning disables Dependabot's alerting (alerts are generated only
+    #    for semver refs), so this lookup is the only thing that will ever say
+    #    a pinned action is vulnerable. Needs `gh`; degrades to a WARNING when
+    #    the network is unavailable — the pin half still hard-fails.
+    # Exceptions + the repo's cooldown live in .octo/gitactions.yml; every
+    # exception must carry an `expires` date — never permanent.
+    github-actions-audit-all:
+      run: octo callback invoke github-actions audit
+    # octo-managed — reasserted by `octo callback install workflow-runners`; change it in octo, not here.
+    # Every GitHub Actions job that holds credentials (id-token: write, a
+    # secret other than GITHUB_TOKEN, secrets passed to a reusable workflow,
+    # aws-actions/configure-aws-credentials) must run on a GitHub-hosted
+    # runner: on any other runner, whoever runs the machine can read what the
+    # job holds. Judged by @cloudstashhq/infra-checks, the same library the
+    # github-org check runs. `runs-on: ${{ vars.X }}` is resolved with your gh
+    # (repo variables, then org); a runner octo cannot resolve BLOCKS too.
+    # Exceptions (with a why) live in .octo/workflow-runners.yml, the file the
+    # org check also reads. Deliberately NOT globbed: the whole repo is judged.
+    # Override one push: git push --no-verify.
+    workflow-runners:
+      run: octo callback invoke workflow-runners
 pre-commit:
   commands:
     # octo-managed — reasserted by `octo callback install gitleaks`; change it in octo, not here
     gitleaks:
       run: octo callback invoke gitleaks staged
+    # octo-managed — reasserted by `octo callback install github-actions`; change it in octo, not here.
+    # Audit the staged workflow + composite-action files: every `uses:` must be
+    # pinned to a 40-char commit SHA. A tag is a MUTABLE pointer its owner can
+    # force-move, so a compromised tag reaches CI silently; a SHA cannot move.
+    #
+    # --no-advisories keeps this fast path a PURE LOCAL PARSE. The advisory
+    # lookup (known vulnerabilities in the GitHub Advisory Database) needs the
+    # network and runs on pre-push instead. Remove the flag only if you want
+    # advisory lookups on every commit.
+    #
+    # GLOB: lefthook does NOT support brace expansion — a braced pattern
+    # matches NOTHING and the job skips while reporting success. Match the
+    # whole tree and let the audit filter to .yml/.yaml itself.
+    # Local (./path) and docker:// refs are exempt — they have no SHA to pin.
+    github-actions-audit:
+      glob: .github/**/*
+      run: octo callback invoke github-actions audit --no-advisories {staged_files}

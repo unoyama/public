@@ -1,0 +1,21 @@
+# octo github-actions audit — this repo's cooldown and expiring exceptions.
+# Managed by 'octo callback install github-actions' (scaffolded once, then
+# repo-owned — edit freely). Parallel of .octo/gitleaks.yml.
+
+# Supply-chain cooldown, in days. A patched release younger than this is
+# "published but not yet installable" — the one situation where an expiring
+# exception with category 'cooldown' is legitimate. Mirrors pnpm's
+# minimumReleaseAge (7200 min = 5 days in most estate repos; frontend runs 7).
+# REQUIRED: the audit fails if this file exists without it.
+cooldown_days: 5
+
+# Expiring exceptions for advisory findings. NEVER permanent: every entry
+# must carry an 'expires' (YYYY-MM-DD) — the audit WARNS through that date
+# (inclusive, local day) and HARD-FAILS from the day after. 'cooldown_days' on an entry overrides the repo
+# default for that advisory only.
+#   - ghsa: GHSA-xxxx-xxxx-xxxx
+#     action: owner/repo
+#     expires: 2026-01-31
+#     category: cooldown   # or: no-fix
+#     why: "patched X.Y.Z released <date>, inside cooldown until <expires>"
+exceptions: []

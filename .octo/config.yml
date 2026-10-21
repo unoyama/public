@@ -1,0 +1,16 @@
+# Octo Repo Config — set values to override user defaults
+
+commit:
+  generator:  # Command to generate commit messages
+  model:  # Model passed via --model flag
+  timeout:  # Seconds before generator times out
+
+update:
+  frequency:  # Days to suppress upgrade prompt after declining
+
+guards:
+  # Security guards this repo DECLINES. `octo repo setup` installs pnpm-audit,
+  # github-actions and workflow-runners by default; `--no-<guard>` records one
+  # here, and repo doctor then reports an opt-out instead of a gap.
+  # `octo callback install <guard>` adopts it again and removes the entry.
+  skip: []
