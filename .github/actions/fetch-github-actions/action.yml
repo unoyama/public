@@ -1,0 +1,149 @@
+name: Fetch the shared GitHub actions
+description: >-
+  Unpacks @cloudstashhq/github-actions (slack-status, deploy-thread, deploy-outcome, failed-job,
+  release-cut-outcome, posthog-capture, registry-login, …) from npm-shared, the CodeArtifact
+  registry that holds only packages harmless to any pull request author, at
+  $GITHUB_WORKSPACE/_ci/github-actions, so a workflow calls them as
+  ./_ci/github-actions/actions/<name>. This action stays in the repo: it is what fetches the
+  package, so it cannot come from it.
+
+  Call it AFTER every actions/checkout in the job (a checkout cleans the workspace, _ci included)
+  and BEFORE anything that can fail, with continue-on-error at the call site. The job needs
+  permissions: id-token: write (the read role), and, in the job given the fallback inputs,
+  actions: read and contents: read (choosing which run posts).
+
+  The default read role is the org's, cloudstash-artifacts-shared-read-<owner>: it trusts every
+  repo and event in the org, pull requests included, and reads npm-shared only, never the private
+  packages in npm-private. No repo needs a role of its own to fetch the package.
+
+  The read role's credentials stay in step outputs (output-env-credentials: false) and reach only
+  the fetch step's env, so the job's own AWS environment and any deploy role it assumes are never
+  replaced. The version is VERSION beside this file unless the caller passes one: the one place to
+  bump for every workflow, and it travels with this action into sparse checkouts. It is never in
+  the published package (bootstrap/ is not in its files): a consumer's copy of this folder is
+  the only VERSION it has.
+
+  When the fetch fails, the actions that would report the run are the ones missing, so fetch.sh
+  posts one plain-text line to alarms-channel (only when it and slack-token are both given) and
+  does not fail: the output ready is false and every Slack step after it is continue-on-error.
+  A job that cannot work without the package (registry-login before an install) passes
+  required: true instead, and the step fails naming the cause; it then has no continue-on-error.
+  Pass the fallback inputs only in the job that posts the run's final card, so an outage alarms
+  once per run. An outage fails every workflow the commit triggered, so of those runs only the
+  one with the lowest run id posts; if that lookup fails, the run posts anyway.
+
+  With the same read role it also unpacks the toolchain manifest, pnpm.json of
+  @cloudstashhq/toolchain's latest release (and its pnpm-cooldown.json beside it, when the release
+  ships one: setup-node-pnpm's minimum release age; and its bootstrap.json, when the release ships
+  one: every bootstrap release, which infra-checks reads there, in the same job, in place of its
+  bundled copy), at $RUNNER_TEMP/cloudstash-toolchain/pnpm.json (outside
+  the workspace, so no checkout can supply it, and cleared at the start of every run), where
+  setup-node-pnpm (which holds no credential) reads it in a later step of the same job, in a repo
+  that pins no packageManager; the toolchain-manifest output carries it to any other job. It runs
+  after the package and its alarm, so a hung registry never delays the alarm, with every call
+  bounded (one token attempt, no npm retries, 20 s per request), and not at all without the role. It is read from npm-shared
+  only: npm packs it from a scratch directory with the default and the @cloudstashhq registry both
+  set to npm-shared and a user config of its own, holding the token, deleted straight after. Only
+  package/pnpm.json is taken, and only from @cloudstashhq/toolchain at an X.Y.Z, as exactly one
+  JSON object, with the other two beside it as they are, for their readers to judge. The runner needs npm on PATH for it (GitHub-hosted runners have it). Its failure is a
+  warning and toolchain-ready: false: it never changes ready, the alarm or required, and
+  setup-node-pnpm then fails in an unpinned repo, naming the cause.
+
+  A job that never runs pnpm (a notification-only job) passes toolchain: false, and the manifest is
+  not read at all: no token, no npm, and toolchain-ready is false. It leaves a marker where the
+  manifest would be, so a setup-node-pnpm later in that job, in an unpinned repo, fails as it would
+  without the manifest, naming toolchain: false as the cause. Any value but true or false fails the
+  step before the package, the manifest or the alarm.
+
+  Canonical copy: cloudstashhq/packages-shared packages/github-actions/bootstrap/fetch-github-actions. Copy it verbatim
+  and change only VERSION; its tests (tests/test_bootstrap_fetch.py) live there.
+
+inputs:
+  version:
+    description: "Exact package version, X.Y.Z; empty means the VERSION file beside this action"
+    default: ""
+  role-arn:
+    description: "A CodeArtifact role that reads npm-shared, assumed over GitHub OIDC; empty means the org's, cloudstash-artifacts-shared-read-<owner, lowercased>"
+    default: ""
+  slack-token:
+    description: "Fallback: the ops bot token; empty posts nothing when the fetch fails"
+    default: ""
+  alarms-channel:
+    description: "Fallback: the #<env>-alarms channel id; empty posts nothing when the fetch fails"
+    default: ""
+  context:
+    description: "Fallback: what was deploying; empty means the workflow's name"
+    default: ""
+  required:
+    description: "true fails the step when the package cannot be fetched, for a job that needs it (registry-login); false only sets ready"
+    default: "false"
+  github-token:
+    description: "Fallback: reads this commit's runs and workflow files (actions: read, contents: read)"
+    default: ${{ github.token }}
+  toolchain:
+    description: "true reads the toolchain manifest for setup-node-pnpm; false skips it, for a job that never runs pnpm; anything else fails the step"
+    default: "true"
+
+outputs:
+  ready:
+    description: "true when the actions are unpacked at _ci/github-actions"
+    value: ${{ steps.fetch.outputs.ready }}
+  toolchain-ready:
+    description: "true when the toolchain manifest is unpacked at $RUNNER_TEMP/cloudstash-toolchain/pnpm.json; false never changes ready, and is always false with toolchain: false"
+    value: ${{ steps.fetch.outputs.toolchain-ready }}
+  toolchain-cooldown:
+    description: "The toolchain's pnpm-cooldown.json as one line of JSON, for setup-node-pnpm's toolchain-cooldown beside toolchain-manifest in a job without credentials; empty unless toolchain-ready and the release ships one"
+    value: ${{ steps.fetch.outputs.toolchain-cooldown }}
+  toolchain-manifest:
+    description: "The toolchain manifest (pnpm.json) as one line of JSON, for setup-node-pnpm's toolchain-manifest in a job without credentials; empty unless toolchain-ready"
+    value: ${{ steps.fetch.outputs.toolchain-manifest }}
+  toolchain-version:
+    description: "The @cloudstashhq/toolchain version the manifest came from, X.Y.Z; empty unless toolchain-ready"
+    value: ${{ steps.fetch.outputs.toolchain-version }}
+
+runs:
+  using: composite
+  steps:
+    # github.event.repository is absent from some events' payloads (schedule), so the default
+    # role is built from GITHUB_REPOSITORY_OWNER, lowercased with tr: macOS's bash 3.2 has no ${x,,}.
+    - name: Choose the registry read role
+      id: role
+      shell: bash
+      env:
+        ROLE_ARN: ${{ inputs.role-arn }}
+      run: |
+        owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+        echo "arn=${ROLE_ARN:-arn:aws:iam::168824206675:role/cloudstash-artifacts-shared-read-$owner}" >> "$GITHUB_OUTPUT"
+
+    - name: Assume the registry read role
+      id: aws
+      continue-on-error: true
+      uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      with:
+        role-to-assume: ${{ steps.role.outputs.arn }}
+        aws-region: us-east-2
+        output-credentials: true
+        output-env-credentials: false
+        # One attempt, not the default 12 with backoff: a refused role must fall through to the
+        # fallback alarm well inside the caller's timeout-minutes.
+        retry-max-attempts: 1
+
+    - name: Fetch and unpack the package
+      id: fetch
+      shell: bash
+      env:
+        CREDS_OUTCOME: ${{ steps.aws.outcome }}
+        AWS_ACCESS_KEY_ID: ${{ steps.aws.outputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ steps.aws.outputs.aws-secret-access-key }}
+        AWS_SESSION_TOKEN: ${{ steps.aws.outputs.aws-session-token }}
+        VERSION_INPUT: ${{ inputs.version }}
+        REQUIRED: ${{ inputs.required }}
+        TOOLCHAIN: ${{ inputs.toolchain }}
+        SLACK_TOKEN: ${{ inputs.slack-token }}
+        ALARMS_CHANNEL: ${{ inputs.alarms-channel }}
+        CONTEXT: ${{ inputs.context }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        # A pull request's runs are listed under its head commit, not the merge commit it checks out.
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: bash "${{ github.action_path }}/fetch.sh"

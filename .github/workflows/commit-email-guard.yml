@@ -1,0 +1,75 @@
+# octo-managed — reasserted by 'octo callback install commit-email-guard'; change it in octo, not here.
+# octo revision 7 — an older octo never overwrites a higher revision.
+#
+# DO NOT EDIT. octo writes this file from infra-checks' buildCommitEmailGuardWorkflow and
+# overwrites it in full; `infra-checks repo check` (guard-commit-email-ci) reports a copy that
+# is missing, older, on another branch, no longer calls the guard or reads other names.
+#
+# The commit-email guard: on every push to the default branch, the pushed commits' author and
+# committer emails are judged against the org's commitEmails policy (the COMMIT_EMAIL_POLICY org
+# variable, generated from its github-org dataset), by the rules the git hooks and the nightly
+# github-org check apply. It catches, within minutes, what no hook sees: a merge, squash or edit
+# made in the GitHub web UI. A finding fails this run and alerts the UNOYAMA estate's
+# dev-alarms channel. Merge with `octo pr merge` from now on; rewriting history is the estate's
+# decision.
+#
+# The org's variables and secrets it reads, named by the org exemptions file (commitEmailGuard):
+#   COMMIT_EMAIL_POLICY: the policy, as JSON, which `infra-checks github-org apply --only
+#     variables` writes from the dataset (a hand edit is drift the org check reports)
+#   SLACK_OPS_BOT_TOKEN (secret), SLACK_CHANNEL_ID_DEV_ALARMS: the alert, by the
+#     UNOYAMA estate's ops bot to its dev-alarms channel
+#   CLOUDSTASH_REGISTRY_READ_ROLE_ARN, CLOUDSTASH_REGISTRY_DOMAIN, CLOUDSTASH_REGISTRY_DOMAIN_OWNER, CLOUDSTASH_REGISTRY_REGION:
+#     the registry infra-checks is installed from
+#   CI_RUNNER_TRUSTED: the runner for jobs holding credentials, which this one does
+name: commit-email-guard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read     # the fetch step's alarm fallback: lists this commit's runs, so one alarms
+  id-token: write   # GitHub OIDC for the registry roles only (the shared actions, infra-checks)
+
+jobs:
+  guard:
+    name: commit-email guard
+    runs-on: ${{ vars.CI_RUNNER_TRUSTED }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 5   # the whole history
+        with:
+          fetch-depth: 0   # the whole pushed range: the guard refuses a shallow checkout
+          persist-credentials: false   # the guard never talks to this repo's remote
+
+      - name: Fetch the shared actions
+        uses: ./.github/actions/fetch-github-actions
+        timeout-minutes: 2   # the shared actions package, and the manifest when one is fetched
+        with:
+          version: 0.22.0
+          required: true
+          slack-token: ${{ secrets.SLACK_OPS_BOT_TOKEN }}
+          alarms-channel: ${{ vars.SLACK_CHANNEL_ID_DEV_ALARMS }}
+          context: commit-email guard
+          toolchain: false   # the guard runs no pnpm: no manifest to fetch
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        timeout-minutes: 5   # Node 22
+        with:
+          node-version: 22
+
+      - name: Judge the pushed commits' emails
+        uses: ./_ci/github-actions/actions/commit-email-guard
+        timeout-minutes: 5   # installs infra-checks, judges the range, alerts
+        with:
+          version: 0.41.0
+          policy-json: ${{ vars.COMMIT_EMAIL_POLICY }}
+          slack-bot-token: ${{ secrets.SLACK_OPS_BOT_TOKEN }}
+          slack-channel: ${{ vars.SLACK_CHANNEL_ID_DEV_ALARMS }}
+          role-arn: ${{ vars.CLOUDSTASH_REGISTRY_READ_ROLE_ARN }}
+          domain: ${{ vars.CLOUDSTASH_REGISTRY_DOMAIN }}
+          domain-owner: ${{ vars.CLOUDSTASH_REGISTRY_DOMAIN_OWNER }}
+          region: ${{ vars.CLOUDSTASH_REGISTRY_REGION }}
+          repository: npm-shared
