@@ -1,5 +1,5 @@
 # octo-managed — reasserted by 'octo callback install commit-email-guard'; change it in octo, not here.
-# octo revision 7 — an older octo never overwrites a higher revision.
+# octo revision 8 — an older octo never overwrites a higher revision.
 #
 # DO NOT EDIT. octo writes this file from infra-checks' buildCommitEmailGuardWorkflow and
 # overwrites it in full; `infra-checks repo check` (guard-commit-email-ci) reports a copy that
@@ -12,6 +12,11 @@
 # made in the GitHub web UI. A finding fails this run and alerts the UNOYAMA estate's
 # dev-alarms channel. Merge with `octo pr merge` from now on; rewriting history is the estate's
 # decision.
+#
+# It pins neither package it runs: each run reads the newest release of the shared actions and of
+# infra-checks from npm-shared and runs those, so an improvement to the guard needs no change here,
+# and a newly published release runs with this job's credentials on the next push. It judges commit
+# emails only. If the newest cannot be read, the fetch step fails and alarms.
 #
 # The org's variables and secrets it reads, named by the org exemptions file (commitEmailGuard):
 #   COMMIT_EMAIL_POLICY: the policy, as JSON, which `infra-checks github-org apply --only
@@ -44,11 +49,54 @@ jobs:
           fetch-depth: 0   # the whole pushed range: the guard refuses a shallow checkout
           persist-credentials: false   # the guard never talks to this repo's remote
 
+      - name: Assume the registry read role
+        id: registry
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        continue-on-error: true   # the next step fails without it, and the fetch step alarms
+        timeout-minutes: 1   # one attempt
+        with:
+          role-to-assume: ${{ vars.CLOUDSTASH_REGISTRY_READ_ROLE_ARN }}
+          aws-region: ${{ vars.CLOUDSTASH_REGISTRY_REGION }}
+          role-session-name: commit-email-guard-newest-${{ github.run_id }}
+          role-duration-seconds: 900
+          retry-max-attempts: 1
+          output-credentials: true
+          output-env-credentials: false
+
+      - name: Read the newest releases
+        id: newest
+        continue-on-error: true   # no output: the fetch step fails on that, and alarms
+        timeout-minutes: 1   # two registry reads
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.registry.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.registry.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.registry.outputs.aws-session-token }}
+          AWS_REGION: ${{ vars.CLOUDSTASH_REGISTRY_REGION }}
+          DOMAIN: ${{ vars.CLOUDSTASH_REGISTRY_DOMAIN }}
+          DOMAIN_OWNER: ${{ vars.CLOUDSTASH_REGISTRY_DOMAIN_OWNER }}
+        run: |
+          set -uo pipefail
+          unset AWS_PROFILE AWS_DEFAULT_PROFILE
+          export AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null AWS_MAX_ATTEMPTS=1
+          newest() {
+            version=$(aws codeartifact list-package-versions --cli-connect-timeout 5 --cli-read-timeout 20 \
+              --domain "$DOMAIN" --domain-owner "$DOMAIN_OWNER" --repository npm-shared --format npm \
+              --namespace cloudstashhq --package "$package" --status Published --max-results 1 --no-paginate \
+              --query defaultDisplayVersion --output text) && [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && return 0
+            echo "::error::commit-email guard: could not read the newest $package from npm-shared"
+            exit 1
+          }
+          package=github-actions; newest; github_actions=$version
+          package=infra-checks; newest; judge=$version
+          { echo "github-actions=$github_actions"; echo "infra-checks=$judge"; } >> "$GITHUB_OUTPUT"
+          echo "::notice::commit-email guard: running github-actions $github_actions, and the judge at $judge"
+
       - name: Fetch the shared actions
         uses: ./.github/actions/fetch-github-actions
         timeout-minutes: 2   # the shared actions package, and the manifest when one is fetched
         with:
-          version: 0.22.0
+          version: ${{ steps.newest.outputs.github-actions || 'unresolved' }}   # not an X.Y.Z: the fetch fails and alarms
           required: true
           slack-token: ${{ secrets.SLACK_OPS_BOT_TOKEN }}
           alarms-channel: ${{ vars.SLACK_CHANNEL_ID_DEV_ALARMS }}
@@ -64,7 +112,7 @@ jobs:
         uses: ./_ci/github-actions/actions/commit-email-guard
         timeout-minutes: 5   # installs infra-checks, judges the range, alerts
         with:
-          version: 0.41.0
+          version: ${{ steps.newest.outputs.infra-checks }}
           policy-json: ${{ vars.COMMIT_EMAIL_POLICY }}
           slack-bot-token: ${{ secrets.SLACK_OPS_BOT_TOKEN }}
           slack-channel: ${{ vars.SLACK_CHANNEL_ID_DEV_ALARMS }}
