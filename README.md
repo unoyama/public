@@ -73,3 +73,20 @@ Find the remaining placeholders:
 ```
 grep -rn "confirm" .
 ```
+
+<!-- >>> octo envrc >>> -->
+## Environment variables
+
+This repo's shell environment is **declared** in [.octo/envrc.yml](.octo/envrc.yml)
+and loaded by direnv on cd (one 1Password approval per shell). The .envrc
+is a managed stub — edit the declaration, not the stub.
+
+- **See what is declared:** .octo/envrc.yml (env vars, op:// refs, zuno connections)
+- **Verify your shell:** octo callback invoke envrc check
+- **Agents/LLMs:** launch from a direnv-loaded shell and you inherit every
+  resolved var — including human-gated ones (a person resolved them at cd).
+  If a var is missing you may run octo callback invoke envrc emit, but entries
+  gated resolve_actors: [human] refuse autonomous resolution by design —
+  ask the human to reload rather than working around the gate.
+- Fresh clone: direnv allow
+<!-- <<< octo envrc <<< -->

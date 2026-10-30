@@ -1,0 +1,71 @@
+# .octo/envrc.yml — what this repo's shell environment needs.
+# Octo executes (`octo callback invoke envrc emit`, called from the managed
+# .envrc stub); this file only declares. Committed and reference-only: no
+# secret values, just op:// pointers and account selectors.
+#
+# Secret handling: octo:guide:conventions:document:secret-handling-pattern
+
+# BLOCKS ARE ALPHABETICAL: aws, gh, op, static. A reader finds one by name
+# rather than by remembering how the file grew.
+
+# Block settings shared by this directory. A fragment (see the note at the
+# bottom) inherits what it does not set, and overrides what it does — so a
+# fragment naming another AWS account resolves against THAT account.
+#defaults:
+#  aws:
+#    account: "123456789012"
+#    region: us-east-2
+#    # role_name: AdministratorAccess   # only if one account has several
+#    #   profiles; exact match on sso_role_name from ~/.aws/config
+#  gh:
+#    environment: dev
+#  op:
+#    account:
+#      domain: cloudstashhq.com
+
+# AWS Secrets Manager and SSM Parameter Store, keyed by ACCOUNT — never by
+# profile name, which differs per machine while this file is shared.
+#aws:
+#  # account:/region: here override the defaults above for these entries only.
+#  env:
+#    - var: MY_DB_PASSWORD
+#      secret: my-generated-credential     # Secrets Manager
+#      field: password                     # JSON key; omit for a plain string
+#    - var: MY_SETTING
+#      parameter: /dev/my-app/setting      # SSM (SecureString is decrypted)
+
+# GitHub ENVIRONMENT variables (dev/release/prod) — the values the deploy
+# reads, rather than a copy here that goes stale silently. Not secrets:
+# GitHub never returns those through the API.
+#gh:
+#  # environment: here overrides the default above for these entries only.
+#  env:
+#    - var: MY_CLERK_URL                   # GitHub name defaults to var
+#    - var: MY_OTHER
+#      name: DIFFERENT_GITHUB_NAME
+
+#op:
+#  # Load 1Password fields into env vars, using the account from defaults:.
+#  env:
+#    - var: AIRTABLE_API_KEY
+#      ref: op://Employee/api.keys/airtable
+
+# Plain non-secret exports (no 1Password): committed values.
+#static:
+#  - var: MY_SERVICE_HOST
+#    value: "127.0.0.1"
+
+# This file declares LOOKUPS, not recipes. It emits parts (a host, a user, a
+# password); anything composed from them — a DSN, a URL — is the consuming
+# code's business logic.
+#
+# EVERY DECLARED VAR IS REQUIRED. There is no list to maintain: `octo envrc
+# check` fails naming any that do not resolve. Mark the exception on the entry
+# itself, where it cannot outlive the declaration it exempts:
+#
+#    - var: MAYBE_ABSENT
+#      ref: op://Employee/thing/field
+#      optional: true
+#
+# `optional: true` means "do not fail the check", not "do not tell me":
+# `octo envrc check --resolve` fetches for real and still reports it.
