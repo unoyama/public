@@ -2,15 +2,24 @@ commit-msg:
   commands:
     # octo-managed: octo decides which checks run; skip one in .octo/exceptions.yml. Change it in octo, not here.
     octo:
-      run: octo hook commit-msg {1}
+      run: |-
+        PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin"
+        command -v octo >/dev/null 2>&1 || { echo "octo hook: octo is not on this hook's PATH nor in /opt/homebrew/bin, /usr/local/bin, /home/linuxbrew/.linuxbrew/bin. Install it (brew install cloudstashhq/tap/octo), or start git from a shell whose PATH has octo." >&2; exit 127; }
+        octo hook commit-msg {1}
 pre-push:
   commands:
     # octo-managed: octo decides which checks run; skip one in .octo/exceptions.yml. Change it in octo, not here.
     octo:
-      run: octo hook pre-push {1}
+      run: |-
+        PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin"
+        command -v octo >/dev/null 2>&1 || { echo "octo hook: octo is not on this hook's PATH nor in /opt/homebrew/bin, /usr/local/bin, /home/linuxbrew/.linuxbrew/bin. Install it (brew install cloudstashhq/tap/octo), or start git from a shell whose PATH has octo." >&2; exit 127; }
+        octo hook pre-push {1}
       use_stdin: true
 pre-commit:
   commands:
     # octo-managed: octo decides which checks run; skip one in .octo/exceptions.yml. Change it in octo, not here.
     octo:
-      run: octo hook pre-commit {staged_files}
+      run: |-
+        PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin"
+        command -v octo >/dev/null 2>&1 || { echo "octo hook: octo is not on this hook's PATH nor in /opt/homebrew/bin, /usr/local/bin, /home/linuxbrew/.linuxbrew/bin. Install it (brew install cloudstashhq/tap/octo), or start git from a shell whose PATH has octo." >&2; exit 127; }
+        octo hook pre-commit {staged_files}
