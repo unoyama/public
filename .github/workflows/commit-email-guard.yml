@@ -1,5 +1,5 @@
 # octo-managed — reasserted by 'octo callback install commit-email-guard'; change it in octo, not here.
-# octo revision 8 — an older octo never overwrites a higher revision.
+# octo revision 9 — an older octo never overwrites a higher revision.
 #
 # DO NOT EDIT. octo writes this file from infra-checks' buildCommitEmailGuardWorkflow and
 # overwrites it in full; `infra-checks repo check` (guard-commit-email-ci) reports a copy that
@@ -25,7 +25,7 @@
 #     UNOYAMA estate's ops bot to its dev-alarms channel
 #   CLOUDSTASH_REGISTRY_READ_ROLE_ARN, CLOUDSTASH_REGISTRY_DOMAIN, CLOUDSTASH_REGISTRY_DOMAIN_OWNER, CLOUDSTASH_REGISTRY_REGION:
 #     the registry infra-checks is installed from
-#   CI_RUNNER_TRUSTED: the runner for jobs holding credentials, which this one does
+#   CI_RUNNER_TRUSTED_LINUX_ARM64_SMALL: the runner for jobs holding credentials, which this one does
 name: commit-email-guard
 
 on:
@@ -40,7 +40,7 @@ permissions:
 jobs:
   guard:
     name: commit-email guard
-    runs-on: ${{ vars.CI_RUNNER_TRUSTED }}
+    runs-on: ${{ vars.CI_RUNNER_TRUSTED_LINUX_ARM64_SMALL }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

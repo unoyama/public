@@ -53,11 +53,11 @@ duplicating the schema here:
 
 These are set by `octo init` and available in every terminal session:
 
-| Variable | Resolves To | Purpose |
-|----------|-------------|---------|
-| `$OCTO_ROOT` | `$(brew --prefix)/share/octo` | Root of octo's installed files |
-| `$OCTO_SCRIPTS` | `$OCTO_ROOT/scripts` | Built-in command scripts |
-| `$OCTO_DOCS` | `$OCTO_ROOT/docs` | Documentation files |
+| Variable             | Resolves To                         | Purpose                        |
+| -------------------- | ----------------------------------- | ------------------------------ |
+| `$OCTO_ROOT`         | `$(brew --prefix)/share/octo`       | Root of octo's installed files |
+| `$OCTO_SCRIPTS`      | `$OCTO_ROOT/scripts`                | Built-in command scripts       |
+| `$OCTO_DOCS`         | `$OCTO_ROOT/docs`                   | Documentation files            |
 | `$OCTO_INSTRUCTIONS` | `$OCTO_ROOT/_internal/instructions` | Commit generation instructions |
 
 Use these in commands and documentation instead of hardcoding paths.
