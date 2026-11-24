@@ -1,2 +1,4 @@
 # octo callback install envrc — .direnv/ holds a live gh-token cache
 .direnv/
+# octo callback install envrc — .tmp/ is this checkout's TMPDIR
+.tmp/
